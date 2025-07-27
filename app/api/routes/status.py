@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/status/{task_id}",
+    "/api/v1/analysis/status/{task_id}",
     response_model=TaskStatusResponse,
     summary="Get Task Status",
     description="Retrieve the current status and progress of an analysis task."
@@ -67,7 +67,7 @@ async def get_task_status(
 
 
 @router.get(
-    "/results/{task_id}",
+    "/api/v1/analysis/results/{task_id}",
     summary="Get Analysis Results",
     description="Retrieve the analysis results for a completed task."
 )
@@ -123,7 +123,7 @@ async def get_analysis_results(
 
 
 @router.get(
-    "/tasks",
+    "/api/v1/analysis/tasks",
     response_model=List[TaskStatusResponse],
     summary="List Tasks",
     description="List analysis tasks, optionally filtered by repository and PR number."

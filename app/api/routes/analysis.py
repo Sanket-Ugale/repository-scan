@@ -22,7 +22,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/analyze-pr",
+    "/api/v1/analysis/analyze-pr",
     response_model=AnalysisResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Analyze GitHub Pull Request",

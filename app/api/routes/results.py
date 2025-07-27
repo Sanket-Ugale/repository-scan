@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/results/{task_id}",
+    "/api/v1/analysis/results/{task_id}",
     response_model=AssignmentResults,
     responses={
         404: {"model": ErrorResponse, "description": "Task not found"},

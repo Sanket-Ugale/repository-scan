@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "ai-code-review-agent-collection",
-		"name": "AI Code Review Agent API - FIXED VERSION",
-		"description": "✅ FULLY WORKING API collection for testing the AI Code Review Agent endpoints. All datetime serialization issues have been resolved! This collection includes all available endpoints for submitting PR analysis, checking status, retrieving results, and health monitoring.",
+		"name": "AI Code Review Agent API - Updated Collection",
+		"description": "✅ UPDATED API collection for testing the AI Code Review Agent endpoints. This collection matches the current route structure with proper API v1 endpoints for submitting repository/PR analysis, checking status, retrieving results, and health monitoring. Supports both repository scanning and PR analysis.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "ai-code-review-agent"
 	},
@@ -91,7 +91,7 @@
 			"response": []
 		},
 		{
-			"name": "Submit PR Analysis",
+			"name": "Submit Repository Analysis",
 			"event": [
 				{
 					"listen": "test",
@@ -132,7 +132,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"repo_url\": \"https://github.com/octocat/Hello-World\",\n    \"pr_number\": 1,\n    \"analysis_type\": \"comprehensive\",\n    \"focus_areas\": [\"security_vulnerabilities\", \"code_smells\"]\n}",
+					"raw": "{\n    \"repo_url\": \"https://github.com/sanketugale/vuln_LLM\",\n    \"analysis_type\": \"comprehensive\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -140,20 +140,23 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/analyze-pr",
+					"raw": "{{base_url}}/api/v1/analysis/analyze-pr",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"analyze-pr"
 					]
 				},
-				"description": "Submit a GitHub pull request for AI-powered code review analysis. This endpoint queues the analysis task and returns a task ID for tracking progress."
+				"description": "Submit a GitHub repository for AI-powered code analysis. This scans the entire repository without focusing on a specific PR."
 			},
 			"response": []
 		},
 		{
-			"name": "Submit PR Analysis - Security Focus",
+			"name": "Submit PR Analysis",
 			"event": [
 				{
 					"listen": "test",
@@ -166,7 +169,7 @@
 							"pm.test(\"Response has task_id\", function () {",
 							"    const jsonData = pm.response.json();",
 							"    pm.expect(jsonData).to.have.property('task_id');",
-							"    pm.environment.set('security_task_id', jsonData.task_id);",
+							"    pm.environment.set('pr_task_id', jsonData.task_id);",
 							"});"
 						],
 						"type": "text/javascript"
@@ -187,7 +190,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"repo_url\": \"https://github.com/microsoft/vscode\",\n    \"pr_number\": 100,\n    \"analysis_type\": \"security\",\n    \"focus_areas\": [\"security_vulnerabilities\", \"error_handling\"]\n}",
+					"raw": "{\n    \"repo_url\": \"https://github.com/octocat/Hello-World\",\n    \"pr_number\": 1,\n    \"analysis_type\": \"comprehensive\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -195,15 +198,18 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/analyze-pr",
+					"raw": "{{base_url}}/api/v1/analysis/analyze-pr",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"analyze-pr"
 					]
 				},
-				"description": "Submit a PR analysis with security focus on a real repository."
+				"description": "Submit a specific GitHub pull request for analysis. This focuses on changes in the PR rather than the entire repository."
 			},
 			"response": []
 		},
@@ -238,11 +244,14 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/status/{{task_id}}",
+					"raw": "{{base_url}}/api/v1/analysis/status/{{task_id}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"status",
 						"{{task_id}}"
 					]
@@ -283,11 +292,14 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/status/test-task-123",
+					"raw": "{{base_url}}/api/v1/analysis/status/test-task-123",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"status",
 						"test-task-123"
 					]
@@ -327,11 +339,14 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/results/{{task_id}}",
+					"raw": "{{base_url}}/api/v1/analysis/results/{{task_id}}",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"results",
 						"{{task_id}}"
 					]
@@ -369,11 +384,14 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/tasks",
+					"raw": "{{base_url}}/api/v1/analysis/tasks",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"tasks"
 					]
 				},
@@ -410,11 +428,14 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/tasks?repo_url=https://github.com/octocat/Hello-World",
+					"raw": "{{base_url}}/api/v1/analysis/tasks?repo_url=https://github.com/octocat/Hello-World",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"tasks"
 					],
 					"query": [
@@ -457,11 +478,14 @@
 					}
 				],
 				"url": {
-					"raw": "{{base_url}}/tasks?pr_number=1",
+					"raw": "{{base_url}}/api/v1/analysis/tasks?pr_number=1",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"tasks"
 					],
 					"query": [
@@ -579,15 +603,76 @@
 					}
 				},
 				"url": {
-					"raw": "{{base_url}}/analyze-pr",
+					"raw": "{{base_url}}/api/v1/analysis/analyze-pr",
 					"host": [
 						"{{base_url}}"
 					],
 					"path": [
+						"api",
+						"v1",
+						"analysis",
 						"analyze-pr"
 					]
 				},
 				"description": "Test error handling with invalid input data."
+			},
+			"response": []
+		},
+		{
+			"name": "Submit Repository Analysis with GitHub Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 202\", function () {",
+							"    pm.response.to.have.status(202);",
+							"});",
+							"",
+							"pm.test(\"Response has task_id\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('task_id');",
+							"    pm.environment.set('auth_task_id', jsonData.task_id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"repo_url\": \"https://github.com/sanketugale/accc\",\n    \"analysis_type\": \"comprehensive\",\n    \"github_token\": \"{{github_token}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/analysis/analyze-pr",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"analysis",
+						"analyze-pr"
+					]
+				},
+				"description": "Submit a repository analysis with a custom GitHub token for accessing private repositories or increased rate limits."
 			},
 			"response": []
 		}
@@ -624,17 +709,38 @@
 		{
 			"key": "base_url",
 			"value": "http://localhost:8000",
-			"type": "string"
+			"type": "string",
+			"description": "Base URL for the AI Code Review Agent API"
 		},
 		{
 			"key": "task_id",
 			"value": "",
-			"type": "string"
+			"type": "string",
+			"description": "Task ID from the last repository analysis submission"
+		},
+		{
+			"key": "pr_task_id",
+			"value": "",
+			"type": "string",
+			"description": "Task ID from the last PR analysis submission"
 		},
 		{
 			"key": "security_task_id",
 			"value": "",
-			"type": "string"
+			"type": "string",
+			"description": "Task ID from the last security-focused analysis"
+		},
+		{
+			"key": "auth_task_id",
+			"value": "",
+			"type": "string",
+			"description": "Task ID from the last authenticated analysis"
+		},
+		{
+			"key": "github_token",
+			"value": "ghp_YOUR_TOKEN_HERE",
+			"type": "string",
+			"description": "GitHub personal access token for API requests"
 		}
 	]
 }
