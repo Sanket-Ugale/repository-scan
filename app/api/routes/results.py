@@ -1,10 +1,11 @@
 from typing import Dict, Any, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db
+from app.core.rate_limiter import standard_rate_limit
 from app.models.schemas import AssignmentResults, ErrorResponse
 from app.services.task_manager import task_manager
 
@@ -23,8 +24,10 @@ router = APIRouter()
     summary="Get Analysis Results",
     description="Retrieve the results of a completed analysis task in assignment format."
 )
+@standard_rate_limit()
 async def get_results(
     task_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> AssignmentResults:
     try:

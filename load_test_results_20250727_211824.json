@@ -1,0 +1,24 @@
+{
+  "test_summary": {
+    "total_requests": 30000,
+    "successful_requests": 120,
+    "failed_requests": 29880,
+    "success_rate": 0.4,
+    "test_duration": 62.15,
+    "target_rps": 100,
+    "actual_rps": 482.69
+  },
+  "response_times": {
+    "average_ms": 7.35,
+    "median_ms": 5.03,
+    "min_ms": 2.61,
+    "max_ms": 29.36,
+    "p95_ms": 25.02,
+    "p99_ms": 28.64
+  },
+  "status_codes": {
+    "200": 120,
+    "429": 29880
+  },
+  "errors": null
+}

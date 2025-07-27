@@ -1,10 +1,11 @@
 from typing import List, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db
+from app.core.rate_limiter import status_rate_limit, standard_rate_limit
 from app.models.schemas import TaskStatusResponse, ErrorResponse
 from app.services.task_manager import task_manager
 from app.utils.helpers import validate_pr_number
@@ -20,8 +21,10 @@ router = APIRouter()
     summary="Get Task Status",
     description="Retrieve the current status and progress of an analysis task."
 )
+@status_rate_limit()
 async def get_task_status(
     task_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> TaskStatusResponse:
     logger.info("Task status requested", task_id=task_id)
@@ -71,8 +74,10 @@ async def get_task_status(
     summary="Get Analysis Results",
     description="Retrieve the analysis results for a completed task."
 )
+@standard_rate_limit()
 async def get_analysis_results(
     task_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     logger.info("Analysis results requested", task_id=task_id)
@@ -128,7 +133,9 @@ async def get_analysis_results(
     summary="List Tasks",
     description="List analysis tasks, optionally filtered by repository and PR number."
 )
+@standard_rate_limit()
 async def list_tasks(
+    request: Request,
     repo_url: Optional[str] = Query(None, description="GitHub repository URL filter"),
     pr_number: Optional[int] = Query(None, description="Pull request number filter"),
     db: AsyncSession = Depends(get_db),
@@ -186,7 +193,8 @@ async def list_tasks(
     summary="Health Check",
     description="Check the health status of the analysis service."
 )
-async def health_check():
+@status_rate_limit()
+async def health_check(request: Request):
     try:
         # Check service health
         health_status = {

@@ -2,6 +2,10 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 
+# Rate limiting
+slowapi==0.1.9
+limits>=2.3
+
 # Async processing
 celery==5.3.4
 flower>=2.0.1
@@ -68,3 +72,4 @@ python-dateutil==2.8.2
 
 # JSON handling
 orjson>=3.10.1
+

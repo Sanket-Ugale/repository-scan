@@ -6,9 +6,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+# Import rate limiting components with fallback
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    SLOWAPI_AVAILABLE = True
+except ImportError:
+    SLOWAPI_AVAILABLE = False
+    RateLimitExceeded = Exception
+
 from app.api.routes import analysis, status, results
 from app.core.config import get_settings
 from app.core.database import create_tables
+from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.utils.logging import setup_logging
 
 # Initialize structured logging
@@ -42,13 +52,21 @@ def create_app() -> FastAPI:
         redoc_url=f"{settings.API_V1_STR}/redoc",
         lifespan=lifespan,
     )
-    
+
+    # Add rate limiting (only if slowapi is available)
+    if SLOWAPI_AVAILABLE:
+        app.state.limiter = limiter
+        app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+        logger.info("Rate limiting enabled")
+    else:
+        logger.warning("Rate limiting disabled - slowapi not available")
+
     # Security middleware
     app.add_middleware(
         TrustedHostMiddleware,
         allowed_hosts=["*"] if settings.DEBUG else ["localhost", "127.0.0.1"]
     )
-    
+
     # CORS middleware
     app.add_middleware(
         CORSMiddleware,

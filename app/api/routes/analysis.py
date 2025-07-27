@@ -1,10 +1,11 @@
 from typing import Dict, List, Optional, Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_db, get_github_service, get_llm_service
+from app.core.rate_limiter import analysis_rate_limit, webhook_rate_limit
 from app.models.schemas import (
     PRAnalysisRequest,
     AnalysisResponse,
@@ -28,8 +29,10 @@ router = APIRouter()
     summary="Analyze GitHub Pull Request",
     description="Submit a GitHub pull request for AI-powered code review analysis."
 )
+@analysis_rate_limit()
 async def analyze_pr(
     request: PRAnalysisRequest,
+    http_request: Request,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
     github_service: GitHubService = Depends(get_github_service),
@@ -119,8 +122,10 @@ async def analyze_pr(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
     }
 )
+@webhook_rate_limit()
 async def github_webhook(
     payload: Dict[str, Any],
+    request: Request,
     github_service: GitHubService = Depends(get_github_service),
 ) -> Dict[str, str]:
     logger.info("GitHub webhook received", event_type=payload.get("action"))
