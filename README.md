@@ -140,6 +140,84 @@ Root endpoint with basic service information.
 - **SQLAlchemy** - Async ORM for database operations
 - **pytest** - Comprehensive testing framework
 
+## 🏛️ Design Decisions
+
+### Architecture Patterns
+
+#### **Microservices-Inspired Design**
+- **Separation of Concerns**: API layer (FastAPI) separated from background processing (Celery)
+- **Scalability**: Each component can be scaled independently based on load
+- **Fault Tolerance**: Failure in one component doesn't bring down the entire system
+
+#### **Async-First Approach**
+- **Non-blocking I/O**: All database and external API calls use async/await
+- **High Concurrency**: Can handle multiple repository analyses simultaneously
+- **Resource Efficiency**: Better CPU utilization compared to synchronous alternatives
+
+#### **Task Queue Pattern**
+- **Background Processing**: Long-running analysis tasks don't block API responses
+- **Reliability**: Tasks are persisted and can survive worker restarts
+- **Retry Logic**: Failed tasks are automatically retried with exponential backoff
+
+### Technology Choices
+
+#### **FastAPI over Flask/Django**
+- **Performance**: Superior async performance for I/O-heavy operations
+- **Type Safety**: Built-in Pydantic integration for request/response validation
+- **Documentation**: Automatic OpenAPI/Swagger documentation generation
+- **Modern Python**: Leverages Python 3.11+ features like async/await
+
+#### **Celery over Threading/Multiprocessing**
+- **Distributed**: Can scale across multiple machines
+- **Persistent**: Tasks survive application restarts
+- **Monitoring**: Built-in monitoring with Flower
+- **Reliability**: Proven in production environments
+
+#### **PostgreSQL over MongoDB/SQLite**
+- **ACID Compliance**: Ensures data consistency for task states
+- **JSON Support**: Native JSON fields for storing analysis results
+- **Performance**: Excellent performance for complex queries
+- **Async Support**: Works well with asyncpg driver
+
+#### **Ollama over Cloud LLMs Only**
+- **Privacy**: Code analysis happens locally, no data sent to external services
+- **Cost**: No per-token charges for analysis
+- **Reliability**: No dependency on external API availability
+- **Flexibility**: Can switch models without changing code
+
+#### **Redis over Database Queue**
+- **Speed**: In-memory operations are faster than disk-based queues
+- **Features**: Built-in pub/sub for real-time updates
+- **Reliability**: Persistence options available
+- **Ecosystem**: Well-integrated with Celery
+
+### Data Flow Design
+
+#### **Repository Analysis Pipeline**
+1. **Input Validation**: GitHub URL validation and repository access verification
+2. **File Discovery**: Intelligent file filtering based on language and size
+3. **Content Extraction**: Efficient file reading with size limits
+4. **AI Analysis**: Structured prompts for consistent analysis results
+5. **Result Processing**: Categorization and priority scoring of issues
+
+#### **Error Handling Strategy**
+- **Graceful Degradation**: Partial results if some files fail to analyze
+- **Retry Logic**: Transient failures are retried automatically
+- **Detailed Logging**: Comprehensive error context for debugging
+- **User Feedback**: Clear error messages for user-facing issues
+
+### Security Design
+
+#### **Input Sanitization**
+- **URL Validation**: Strict GitHub URL pattern matching
+- **Content Limits**: File size and repository size restrictions
+- **Token Handling**: Secure storage and transmission of GitHub tokens
+
+#### **Least Privilege**
+- **Container Security**: Non-root containers with minimal permissions
+- **API Access**: Rate limiting and authentication where needed
+- **Database Access**: Connection pooling with connection limits
+
 ## 🎯 Supported Analysis Types
 
 The system provides comprehensive analysis across multiple dimensions:
@@ -177,6 +255,211 @@ The system provides comprehensive analysis across multiple dimensions:
 - **GitHub Personal Access Token** (for repository access)
 - **4GB+ RAM** (for Ollama LLM model)
 - **10GB+ disk space** (for Docker images and model storage)
+
+## 🔧 Project Setup Instructions
+
+### Development Environment Setup
+
+#### **Option 1: Docker Development (Recommended)**
+
+This is the fastest way to get started with a complete development environment.
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd ai-code-review-agent
+
+# 2. Create environment configuration
+cp .env.example .env
+# Edit .env file with your settings (see Configuration section below)
+
+# 3. Start all services
+docker-compose up -d
+
+# 4. Verify setup
+curl http://localhost:8000/health
+```
+
+#### **Option 2: Local Development**
+
+For development with local Python environment and external services.
+
+```bash
+# 1. Clone and navigate
+git clone <repository-url>
+cd ai-code-review-agent
+
+# 2. Create Python virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Start external services (Redis, PostgreSQL, Ollama)
+docker-compose up -d db redis ollama
+
+# 5. Configure environment
+cp .env.example .env
+# Edit .env with local service URLs
+
+# 6. Initialize database
+python scripts/init_database.py
+
+# 7. Start services
+# Terminal 1: API server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 2: Celery worker
+celery -A app.tasks.celery_tasks worker --loglevel=info
+
+# Terminal 3: Flower monitoring (optional)
+celery -A app.tasks.celery_tasks flower
+```
+
+### Configuration Guide
+
+#### **Essential Environment Variables**
+
+Create a `.env` file in the project root with these required settings:
+
+```env
+# GitHub Integration (Required for repository access)
+GITHUB_TOKEN=ghp_your_github_personal_access_token
+
+# Database Configuration
+DATABASE_URL=postgresql://postgres:password@localhost:5432/code_review_db
+
+# Redis Configuration (Task Queue)
+REDIS_URL=redis://localhost:6379/0
+
+# LLM Configuration (Ollama is default)
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=llama3.2:3b
+DEFAULT_LLM_PROVIDER=ollama
+
+# Optional: External LLM APIs
+OPENAI_API_KEY=sk-your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+
+# Security
+SECRET_KEY=your-super-secret-key-at-least-32-characters
+ALGORITHM=HS256
+
+# Application Settings
+DEBUG=true
+LOG_LEVEL=INFO
+ENVIRONMENT=development
+```
+
+#### **GitHub Token Setup**
+
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Click "Generate new token (classic)"
+3. Select scopes:
+   - `repo` - Full control of private repositories
+   - `public_repo` - Access public repositories
+   - `read:org` - Read organization membership
+4. Copy the token and add to `.env` file
+
+#### **Service Port Configuration**
+
+| Service | Default Port | Environment Variable | Purpose |
+|---------|--------------|---------------------|---------|
+| FastAPI | 8000 | `API_PORT` | Main API server |
+| PostgreSQL | 5432 | `DATABASE_URL` | Task and result storage |
+| Redis | 6379 | `REDIS_URL` | Task queue |
+| Ollama | 11434 | `OLLAMA_BASE_URL` | Local LLM service |
+| Flower | 5555 | `FLOWER_PORT` | Task monitoring |
+
+### Verification Steps
+
+After setup, verify your installation:
+
+```bash
+# 1. Check service health
+curl http://localhost:8000/health
+
+# 2. Test repository analysis
+curl -X POST "http://localhost:8000/api/v1/analysis/analyze-pr" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo_url": "https://github.com/octocat/Hello-World",
+    "analysis_type": "comprehensive"
+  }'
+
+# 3. Check Docker services
+docker-compose ps
+
+# 4. View service logs
+docker-compose logs -f api
+```
+
+### Troubleshooting Setup Issues
+
+#### **Common Issues & Solutions**
+
+| Issue | Symptoms | Solution |
+|-------|----------|----------|
+| Docker not running | `docker-compose` command fails | Start Docker Desktop/daemon |
+| Port conflicts | "Port already in use" error | Change ports in `docker-compose.yml` |
+| GitHub token invalid | 401/403 errors on analysis | Verify token and permissions |
+| Ollama model missing | LLM analysis fails | Wait for model download (first run) |
+| Database connection | Database errors in logs | Check PostgreSQL service status |
+
+#### **Reset and Clean Install**
+
+If you encounter persistent issues:
+
+```bash
+# Stop all services
+docker-compose down
+
+# Remove volumes (WARNING: deletes all data)
+docker-compose down -v
+
+# Remove images
+docker-compose down --rmi all
+
+# Clean rebuild
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Development Tools Setup
+
+#### **Code Quality Tools**
+
+```bash
+# Install development dependencies
+pip install black isort flake8 mypy pytest
+
+# Set up pre-commit hooks (optional)
+pre-commit install
+
+# Run code formatting
+black app/ tests/
+isort app/ tests/
+
+# Run type checking
+mypy app/
+
+# Run tests
+pytest --cov=app
+```
+
+#### **IDE Configuration**
+
+**VS Code Extensions:**
+- Python
+- Docker
+- REST Client
+- GitLens
+
+**PyCharm Settings:**
+- Enable async/await support
+- Configure Black as code formatter
+- Set up pytest as test runner
 
 ## 🚀 Quick Start
 
@@ -261,37 +544,165 @@ curl "http://localhost:8000/api/v1/analysis/status/{task_id}"
 
 ### 5. Import Postman Collection
 
+The project includes a comprehensive Postman collection for API testing:
+
+**Collection Location**: `./AI_Code_Review_Agent_Postman_Collection.json` (in project root)
+
+**Import Instructions**:
+1. Open Postman application
+2. Click "Import" button (top left)
+3. Select "Upload Files" tab
+4. Choose `AI_Code_Review_Agent_Postman_Collection.json` from the project directory
+5. Click "Import" to add all pre-configured requests
+
+**What's Included**:
+- ✅ All API endpoints with example requests
+- ✅ Environment variables for easy server switching
+- ✅ Automated tests for response validation
+- ✅ Real GitHub repository examples
+- ✅ Error handling test cases
+
 Import `AI_Code_Review_Agent_Postman_Collection.json` into Postman for comprehensive API testing with pre-configured requests and automated tests.
 
 ## 📊 API Documentation
 
-### Interactive Documentation
+### Interactive Documentation & Testing
+
+#### **Live API Documentation**
 - **Swagger UI**: http://localhost:8000/api/v1/docs
+  - Interactive API explorer with request/response examples
+  - Try out endpoints directly from the browser
+  - Comprehensive schema documentation
 - **ReDoc**: http://localhost:8000/api/v1/redoc
-- **Postman Collection**: Import `AI_Code_Review_Agent_Postman_Collection.json`
-- **Collection Guide**: See `POSTMAN_COLLECTION_GUIDE.md`
+  - Clean, readable API documentation
+  - Detailed parameter descriptions
+  - Code examples in multiple languages
 
-### API Endpoints Summary
+#### **Postman Collection Testing**
+- **Collection File**: `./AI_Code_Review_Agent_Postman_Collection.json`
+- **Collection Guide**: See `POSTMAN_COLLECTION_GUIDE.md` for detailed usage
+- **Features**:
+  - Pre-configured requests for all endpoints
+  - Environment variables for server switching
+  - Automated response validation tests
+  - Real repository examples for testing
 
-| Endpoint | Method | Description | Example |
+#### **API Base URL**
+```
+Development: http://localhost:8000/api/v1
+Production:  https://your-domain.com/api/v1
+```
+
+### Core API Endpoints
+
+#### **Analysis Management**
+
+| Endpoint | Method | Description | Authentication |
+|----------|--------|-------------|----------------|
+| `/api/v1/analysis/analyze-pr` | POST | Submit repository/PR for analysis | Optional GitHub token |
+| `/api/v1/analysis/status/{task_id}` | GET | Get real-time task status | None |
+| `/api/v1/analysis/results/{task_id}` | GET | Retrieve detailed analysis results | None |
+| `/api/v1/analysis/tasks` | GET | List and filter analysis tasks | None |
+
+#### **System Endpoints**
+
+| Endpoint | Method | Description | Purpose |
 |----------|--------|-------------|---------|
-| `/api/v1/analysis/analyze-pr` | POST | Start repository/PR analysis | Repository or PR submission |
-| `/api/v1/analysis/status/{task_id}` | GET | Get task status and progress | Real-time analysis tracking |
-| `/api/v1/analysis/results/{task_id}` | GET | Get detailed analysis results | Completed analysis data |
-| `/api/v1/analysis/tasks` | GET | List all analysis tasks | Task management |
 | `/webhook` | POST | GitHub webhook handler | Automated PR analysis |
 | `/health` | GET | Service health check | System monitoring |
-| `/` | GET | API information | Basic service info |
+| `/` | GET | API information and status | Basic service info |
 
-### Response Status Codes
+### Request/Response Examples
 
-| Code | Status | Description |
-|------|--------|-------------|
-| 200 | OK | Request successful |
-| 202 | Accepted | Analysis task queued |
-| 400 | Bad Request | Invalid input parameters |
-| 404 | Not Found | Task/resource not found |
-| 500 | Internal Error | Server processing error |
+#### **Analyze Repository**
+```bash
+POST /api/v1/analysis/analyze-pr
+Content-Type: application/json
+
+{
+  "repo_url": "https://github.com/user/repository",
+  "analysis_type": "comprehensive",
+  "github_token": "optional_token_for_private_repos"
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "task_id": "abc123def456",
+  "status": "queued",
+  "message": "Repository analysis task queued successfully",
+  "repo_url": "https://github.com/user/repository",
+  "estimated_completion_time": 300,
+  "created_at": "2025-01-27T10:30:00Z"
+}
+```
+
+#### **Check Task Status**
+```bash
+GET /api/v1/analysis/status/abc123def456
+```
+
+**Response (200 OK):**
+```json
+{
+  "task_id": "abc123def456",
+  "status": "completed",
+  "progress": 100,
+  "message": "Analysis completed successfully",
+  "result": {
+    "summary": {
+      "total_files": 15,
+      "total_issues": 23,
+      "critical_issues": 3
+    },
+    "files": [...]
+  },
+  "created_at": "2025-01-27T10:30:00Z",
+  "updated_at": "2025-01-27T10:35:00Z"
+}
+```
+
+### HTTP Status Codes
+
+| Code | Status | Description | When It Occurs |
+|------|--------|-------------|----------------|
+| 200 | OK | Request successful | Successful GET requests |
+| 202 | Accepted | Analysis task queued | Successful POST to analyze-pr |
+| 400 | Bad Request | Invalid input parameters | Malformed requests, invalid URLs |
+| 404 | Not Found | Resource not found | Task ID doesn't exist |
+| 422 | Unprocessable Entity | Validation errors | Invalid request schema |
+| 429 | Too Many Requests | Rate limit exceeded | Too many concurrent requests |
+| 500 | Internal Server Error | Server processing error | Unexpected server errors |
+| 503 | Service Unavailable | Service temporarily down | Maintenance or overload |
+
+### Error Response Format
+
+All error responses follow a consistent format:
+
+```json
+{
+  "error": {
+    "code": "INVALID_REPOSITORY_URL",
+    "message": "The provided repository URL is not valid",
+    "details": {
+      "field": "repo_url",
+      "provided": "invalid-url",
+      "expected": "https://github.com/owner/repository"
+    }
+  },
+  "request_id": "req_123456789"
+}
+```
+
+### Rate Limiting
+
+| Endpoint | Rate Limit | Window | Notes |
+|----------|------------|--------|-------|
+| `/api/v1/analysis/analyze-pr` | 10 requests | 1 minute | Per IP address |
+| `/api/v1/analysis/status/*` | 100 requests | 1 minute | Per IP address |
+| `/api/v1/analysis/results/*` | 50 requests | 1 minute | Per IP address |
+| `/webhook` | 1000 requests | 1 minute | Per webhook source |
 
 ### Task Status Flow
 
@@ -874,34 +1285,68 @@ docker-compose exec redis redis-cli BGSAVE
    - Implement result caching for similar queries
    - Monitor model response times
 
-## 🤝 Contributing
+## 🚀 Future Improvements
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes following the project guidelines
-4. Add tests for new functionality
-5. Ensure all tests pass (`pytest`)
-6. Commit with conventional commit messages
-7. Push to your branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+### Short-term Enhancements (v1.1)
 
-### Code Style
+#### **Enhanced Analysis Capabilities**
+- **Code Complexity Metrics**: Cyclomatic complexity, maintainability index
+- **Dependency Analysis**: Outdated packages, security vulnerabilities in dependencies
+- **Performance Profiling**: Memory usage patterns, execution time analysis
+- **Code Coverage**: Integration with test coverage reports
 
-- Follow PEP 8
-- Use Black for code formatting: `black .`
-- Use isort for imports: `isort .`
-- Use mypy for type checking: `mypy app/`
-- Maximum line length: 88 characters
+#### **User Experience Improvements**
+- **Web Dashboard**: Browser-based interface for analysis management
+- **Real-time Notifications**: WebSocket-based progress updates
+- **Analysis History**: Searchable history of past analyses
+- **Custom Rules**: User-definable analysis rules and thresholds
 
-## 📄 License
+#### **Integration Enhancements**
+- **GitHub App**: Official GitHub App for seamless integration
+- **CI/CD Plugins**: Jenkins, GitLab CI, GitHub Actions plugins
+- **IDE Extensions**: VS Code, PyCharm extensions for inline analysis
+- **Slack/Teams Integration**: Analysis notifications in team channels
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### Medium-term Goals (v2.0)
 
-## 🆘 Support
+#### **Advanced AI Features**
+- **Multi-Model Analysis**: Combine results from multiple LLM models
+- **Code Generation**: Suggest fixes and improvements, not just identify issues
+- **Learning System**: Improve analysis quality based on user feedback
+- **Context-Aware Analysis**: Consider project-specific patterns and conventions
 
-- **Issues**: GitHub Issues for bug reports and feature requests
-- **Discussions**: GitHub Discussions for questions and ideas
-- **Documentation**: Comprehensive API docs at `/docs` endpoint
+#### **Enterprise Features**
+- **RBAC (Role-Based Access Control)**: Team and permission management
+- **SSO Integration**: SAML, OAuth2, Active Directory support
+- **Audit Logging**: Comprehensive audit trails for compliance
+- **Custom Deployment**: On-premises deployment options
+
+#### **Performance & Scalability**
+- **Horizontal Scaling**: Auto-scaling based on analysis load
+- **Caching Layer**: Redis-based caching for repeated analyses
+- **Result Streaming**: Stream analysis results as they become available
+- **Incremental Analysis**: Only analyze changed files in repositories
+
+### Long-term Vision (v3.0+)
+
+#### **AI-Powered Development Assistant**
+- **Predictive Analysis**: Predict potential issues before they occur
+- **Code Quality Trends**: Track quality metrics over time
+- **Team Insights**: Developer productivity and code quality analytics
+- **Automated Refactoring**: AI-driven code improvement suggestions
+
+#### **Advanced Language Support**
+- **Language-Specific Rules**: Deep analysis for specific languages and frameworks
+- **Framework Integration**: Django, React, Spring Boot specific analysis
+- **Configuration Analysis**: Docker, Kubernetes, CI/CD configuration review
+- **Documentation Analysis**: README, API docs quality assessment
+
+#### **Research & Innovation**
+- **Custom Model Training**: Fine-tune models on organization's codebase
+- **Vulnerability Database**: Real-time security vulnerability detection
+- **Code Similarity Detection**: Detect code clones and similar patterns
+- **Architectural Analysis**: System design and architecture recommendations
+
 
 ## 🙏 Acknowledgments
 

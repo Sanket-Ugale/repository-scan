@@ -150,6 +150,7 @@ async def rate_limit_exceeded_handler(request, exc):
 def standard_rate_limit():
     """Standard rate limit for most endpoints."""
     if SLOWAPI_AVAILABLE:
+        # Use the correct syntax for slowapi with FastAPI
         return limiter.limit(f"{settings.RATE_LIMIT_REQUESTS_PER_MINUTE}/minute")
     else:
         # Return a no-op decorator when slowapi is not available
@@ -195,3 +196,11 @@ def webhook_rate_limit():
         def decorator(func):
             return func
         return decorator
+
+
+# Dependency function for rate limiting
+async def rate_limit_dependency(request):
+    """Dependency function to be used with FastAPI Depends() for rate limiting."""
+    # This function doesn't do anything, but ensures Request is available
+    # The actual rate limiting is handled by the decorator
+    return request

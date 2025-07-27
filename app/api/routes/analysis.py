@@ -31,8 +31,8 @@ router = APIRouter()
 )
 @analysis_rate_limit()
 async def analyze_pr(
-    request: PRAnalysisRequest,
-    http_request: Request,
+    request: Request,
+    pr_request: PRAnalysisRequest,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
     github_service: GitHubService = Depends(get_github_service),
@@ -41,7 +41,7 @@ async def analyze_pr(
 
     try:
         # Validate PR number if provided
-        if request.pr_number is not None and not validate_pr_number(request.pr_number):
+        if pr_request.pr_number is not None and not validate_pr_number(pr_request.pr_number):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
@@ -51,7 +51,7 @@ async def analyze_pr(
             )
             
         # Validate and sanitize GitHub URL
-        sanitized_url = sanitize_github_url(request.repo_url)
+        sanitized_url = sanitize_github_url(pr_request.repo_url)
         if not sanitized_url:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -62,34 +62,34 @@ async def analyze_pr(
             )
         
         # Generate unique task ID
-        task_id = generate_task_id(sanitized_url, request.pr_number)
+        task_id = generate_task_id(sanitized_url, pr_request.pr_number)
         
         # Determine analysis type based on whether PR number is provided
-        analysis_type = "pull_request" if request.pr_number else "repository"
+        analysis_type = "pull_request" if pr_request.pr_number else "repository"
         
         logger.info(
             "Analysis submitted",
             task_id=task_id,
             repo_url=sanitized_url,
-            pr_number=request.pr_number,
+            pr_number=pr_request.pr_number,
             analysis_type=analysis_type,
-            has_token=bool(request.github_token)
+            has_token=bool(pr_request.github_token)
         )
         
         # Create task in database with github_token
         await task_manager.create_task(
             task_id=task_id,
             repo_url=sanitized_url,
-            pr_number=request.pr_number,
-            github_token=request.github_token
+            pr_number=pr_request.pr_number,
+            github_token=pr_request.github_token
         )
         
         # Queue analysis task
         analyze_pr_task.delay(
             task_id, 
             sanitized_url, 
-            request.pr_number,
-            request.github_token
+            pr_request.pr_number,
+            pr_request.github_token
         )
         
         return AnalysisResponse(
@@ -97,7 +97,7 @@ async def analyze_pr(
             status="queued",
             message=f"{analysis_type.replace('_', ' ').title()} analysis task queued successfully",
             repo_url=sanitized_url,
-            pr_number=request.pr_number,
+            pr_number=pr_request.pr_number,
             estimated_completion_time=300
         )
         

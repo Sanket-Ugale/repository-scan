@@ -44,7 +44,7 @@ async def get_db():
     Dependency to get database session.
     
     Yields:
-        Session: Database session (None if not available)
+        AsyncSession: Database session
     """
     if not SQLALCHEMY_AVAILABLE:
         logger.warning("Database session unavailable - SQLAlchemy not installed")
@@ -52,10 +52,11 @@ async def get_db():
         return
         
     try:
-        yield None
+        async for session in get_async_session():
+            yield session
     except Exception as e:
         logger.error("Database connection failed", error=str(e))
-        # Don't yield again, just let the exception propagate
+        raise
 
 
 async def get_current_user(credentials=None) -> Optional[str]:
