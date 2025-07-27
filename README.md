@@ -426,28 +426,6 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
-### Development Tools Setup
-
-#### **Code Quality Tools**
-
-```bash
-# Install development dependencies
-pip install black isort flake8 mypy pytest
-
-# Set up pre-commit hooks (optional)
-pre-commit install
-
-# Run code formatting
-black app/ tests/
-isort app/ tests/
-
-# Run type checking
-mypy app/
-
-# Run tests
-pytest --cov=app
-```
-
 #### **IDE Configuration**
 
 **VS Code Extensions:**
@@ -765,86 +743,6 @@ celery -A app.tasks.celery_tasks beat --loglevel=info
 # Terminal 4: Start Flower monitoring (optional)
 celery -A app.tasks.celery_tasks flower
 ```
-
-### Development Tools
-
-```bash
-# Code formatting
-black app/ tests/
-isort app/ tests/
-
-# Type checking
-mypy app/
-
-# Linting
-flake8 app/ tests/
-pylint app/
-
-# Security scanning
-bandit -r app/
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage report
-pytest --cov=app --cov-report=html --cov-report=term
-
-# Run specific test categories
-pytest tests/test_api/
-pytest tests/test_services/
-pytest tests/test_tasks/
-
-# Run integration tests
-pytest tests/ -m integration
-
-# Skip slow tests
-pytest tests/ -m "not slow"
-
-# Verbose output
-pytest -v --tb=short
-```
-
-### Test Coverage Goals
-
-Current test coverage status:
-- **API Routes**: ✅ 85%+ coverage
-- **Core Services**: ✅ 90%+ coverage  
-- **Task Processing**: ✅ 80%+ coverage
-- **Utilities**: ✅ 95%+ coverage
-- **Overall Target**: 🎯 85%+ coverage
-
-### Development Workflow
-
-1. **Feature Development**:
-   ```bash
-   git checkout -b feature/new-analysis-type
-   # Make changes
-   pytest tests/
-   black app/ tests/
-   git commit -m "Add new analysis type"
-   ```
-
-2. **Integration Testing**:
-   ```bash
-   # Test with real repositories
-   python scripts/test_analysis.py
-   
-   # Test API endpoints
-   pytest tests/test_integration/
-   ```
-
-3. **Performance Testing**:
-   ```bash
-   # Load testing with multiple concurrent requests
-   python scripts/load_test.py
-   
-   # Memory profiling
-   python -m memory_profiler scripts/profile_analysis.py
-   ```
 
 ## 📝 Usage Examples
 
