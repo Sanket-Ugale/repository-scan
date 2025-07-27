@@ -1,0 +1,640 @@
+{
+	"info": {
+		"_postman_id": "ai-code-review-agent-collection",
+		"name": "AI Code Review Agent API - FIXED VERSION",
+		"description": "✅ FULLY WORKING API collection for testing the AI Code Review Agent endpoints. All datetime serialization issues have been resolved! This collection includes all available endpoints for submitting PR analysis, checking status, retrieving results, and health monitoring.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "ai-code-review-agent"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has status field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.eql('healthy');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check the health status of the AI Code Review Agent API."
+			},
+			"response": []
+		},
+		{
+			"name": "Root Endpoint",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has message field\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('message');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						""
+					]
+				},
+				"description": "Root endpoint that returns basic application information."
+			},
+			"response": []
+		},
+		{
+			"name": "Submit PR Analysis",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 202\", function () {",
+							"    pm.response.to.have.status(202);",
+							"});",
+							"",
+							"pm.test(\"Response has task_id\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('task_id');",
+							"    pm.expect(jsonData.task_id).to.be.a('string');",
+							"    pm.environment.set('task_id', jsonData.task_id);",
+							"});",
+							"",
+							"pm.test(\"Response has correct status\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData.status).to.eql('queued');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"repo_url\": \"https://github.com/octocat/Hello-World\",\n    \"pr_number\": 1,\n    \"analysis_type\": \"comprehensive\",\n    \"focus_areas\": [\"security_vulnerabilities\", \"code_smells\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/analyze-pr",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"analyze-pr"
+					]
+				},
+				"description": "Submit a GitHub pull request for AI-powered code review analysis. This endpoint queues the analysis task and returns a task ID for tracking progress."
+			},
+			"response": []
+		},
+		{
+			"name": "Submit PR Analysis - Security Focus",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 202\", function () {",
+							"    pm.response.to.have.status(202);",
+							"});",
+							"",
+							"pm.test(\"Response has task_id\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('task_id');",
+							"    pm.environment.set('security_task_id', jsonData.task_id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"repo_url\": \"https://github.com/microsoft/vscode\",\n    \"pr_number\": 100,\n    \"analysis_type\": \"security\",\n    \"focus_areas\": [\"security_vulnerabilities\", \"error_handling\"]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/analyze-pr",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"analyze-pr"
+					]
+				},
+				"description": "Submit a PR analysis with security focus on a real repository."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Task Status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has required fields\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('task_id');",
+							"    pm.expect(jsonData).to.have.property('status');",
+							"    pm.expect(jsonData).to.have.property('progress');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/status/{{task_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"status",
+						"{{task_id}}"
+					]
+				},
+				"description": "Retrieve the current status and progress of an analysis task using the task ID from a previous analysis submission."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Task Status - Manual ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 or 404\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+							"});",
+							"",
+							"if (pm.response.code === 200) {",
+							"    pm.test(\"Response has required fields\", function () {",
+							"        const jsonData = pm.response.json();",
+							"        pm.expect(jsonData).to.have.property('task_id');",
+							"        pm.expect(jsonData).to.have.property('status');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/status/test-task-123",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"status",
+						"test-task-123"
+					]
+				},
+				"description": "Get status for a specific task ID (replace with actual task ID)."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Analysis Results",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 or 404\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+							"});",
+							"",
+							"if (pm.response.code === 200) {",
+							"    pm.test(\"Response has task_id\", function () {",
+							"        const jsonData = pm.response.json();",
+							"        pm.expect(jsonData).to.have.property('task_id');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/results/{{task_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"results",
+						"{{task_id}}"
+					]
+				},
+				"description": "Retrieve the detailed analysis results for a completed task."
+			},
+			"response": []
+		},
+		{
+			"name": "List All Tasks",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is an array\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/tasks",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"tasks"
+					]
+				},
+				"description": "List all analysis tasks with their current status and basic information."
+			},
+			"response": []
+		},
+		{
+			"name": "List Tasks - Filtered by Repo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is an array\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/tasks?repo_url=https://github.com/octocat/Hello-World",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"tasks"
+					],
+					"query": [
+						{
+							"key": "repo_url",
+							"value": "https://github.com/octocat/Hello-World"
+						}
+					]
+				},
+				"description": "List tasks filtered by repository URL."
+			},
+			"response": []
+		},
+		{
+			"name": "List Tasks - Filtered by PR Number",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is an array\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/tasks?pr_number=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"tasks"
+					],
+					"query": [
+						{
+							"key": "pr_number",
+							"value": "1"
+						}
+					]
+				},
+				"description": "List tasks filtered by pull request number."
+			},
+			"response": []
+		},
+		{
+			"name": "GitHub Webhook (Test)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has message\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('message');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "X-GitHub-Event",
+						"value": "pull_request"
+					},
+					{
+						"key": "X-GitHub-Delivery",
+						"value": "test-delivery-12345"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"action\": \"opened\",\n    \"number\": 1,\n    \"pull_request\": {\n        \"id\": 1,\n        \"number\": 1,\n        \"state\": \"open\",\n        \"title\": \"Test PR\",\n        \"body\": \"This is a test pull request\",\n        \"base\": {\n            \"repo\": {\n                \"full_name\": \"octocat/Hello-World\",\n                \"html_url\": \"https://github.com/octocat/Hello-World\"\n            }\n        }\n    },\n    \"repository\": {\n        \"full_name\": \"octocat/Hello-World\",\n        \"html_url\": \"https://github.com/octocat/Hello-World\"\n    }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/webhook",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"webhook"
+					]
+				},
+				"description": "Test webhook endpoint that simulates GitHub webhook events for pull request activities."
+			},
+			"response": []
+		},
+		{
+			"name": "Submit Invalid PR Analysis (Error Test)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response has error details\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('detail');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"repo_url\": \"invalid-url\",\n    \"pr_number\": -1,\n    \"analysis_type\": \"comprehensive\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/analyze-pr",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"analyze-pr"
+					]
+				},
+				"description": "Test error handling with invalid input data."
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set timestamp for unique task identification",
+					"pm.globals.set('timestamp', Date.now());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script - runs after every request",
+					"pm.test(\"Response time is less than 5000ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"pm.test(\"Response has proper content-type\", function () {",
+					"    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "task_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "security_task_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

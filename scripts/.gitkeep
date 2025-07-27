@@ -1,0 +1,5 @@
+# Development scripts
+
+/scripts/dev-setup.sh
+/scripts/start-services.sh
+/scripts/run-tests.sh
