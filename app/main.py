@@ -1,9 +1,3 @@
-"""
-AI Code Review Agent Application
-
-This module initializes the FastAPI application with all necessary
-middleware, routers, and configuration.
-"""
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -24,16 +18,6 @@ logger = structlog.get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Application lifespan manager for startup and shutdown events.
-    
-    Args:
-        app: FastAPI application instance
-        
-    Yields:
-        None during application runtime
-    """
-    # Startup
     logger.info("Starting AI Code Review Agent application")
     settings = get_settings()
     
@@ -43,17 +27,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     yield
     
-    # Shutdown
     logger.info("Shutting down AI Code Review Agent application")
 
 
 def create_app() -> FastAPI:
-    """
-    Create and configure the FastAPI application.
-    
-    Returns:
-        FastAPI: Configured application instance
-    """
     settings = get_settings()
     
     app = FastAPI(

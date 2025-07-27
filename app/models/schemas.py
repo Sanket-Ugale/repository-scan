@@ -1,9 +1,3 @@
-"""
-Pydantic schemas for request/response validation.
-
-This module defines all Pydantic models used for API request
-and response validation in the AI Code Review Agent.
-"""
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from enum import Enum
@@ -42,16 +36,6 @@ class FocusArea(str, Enum):
 
 
 class PRAnalysisRequest(BaseModel):
-    """
-    Request model for PR analysis according to assignment requirements.
-    
-    Attributes:
-        repo_url: GitHub repository URL
-        pr_number: Pull request number (optional - if not provided, scan entire repo)
-        github_token: Optional GitHub token for private repos
-        analysis_type: Type of analysis to perform
-        focus_areas: Specific areas to focus on during analysis
-    """
     repo_url: str = Field(
         ...,
         description="GitHub repository URL",
@@ -97,17 +81,6 @@ class PRAnalysisRequest(BaseModel):
 
 
 class AnalysisResponse(BaseModel):
-    """
-    Response model for analysis request.
-    
-    Attributes:
-        task_id: Unique task identifier
-        status: Current task status
-        message: Human-readable status message
-        repo_url: GitHub repository URL
-        pr_number: Pull request number
-        created_at: Task creation timestamp
-    """
     task_id: str = Field(..., description="Unique task identifier")
     status: TaskStatusEnum = Field(..., description="Current task status")
     message: str = Field(..., description="Human-readable status message")
@@ -138,20 +111,6 @@ class AnalysisResponse(BaseModel):
 
 
 class Finding(BaseModel):
-    """
-    Individual analysis finding.
-    
-    Attributes:
-        type: Type of finding (e.g., security, performance)
-        severity: Severity level (critical, high, medium, low)
-        title: Brief title of the finding
-        description: Detailed description
-        file_path: Path to the affected file
-        line_number: Line number where issue occurs
-        code_snippet: Relevant code snippet
-        suggestion: Suggested fix or improvement
-        confidence: Confidence level of the finding (0.0-1.0)
-    """
     type: str = Field(..., description="Type of finding")
     severity: str = Field(
         ...,
@@ -189,15 +148,6 @@ class Finding(BaseModel):
 
 
 class AnalysisResults(BaseModel):
-    """
-    Complete analysis results.
-    
-    Attributes:
-        summary: High-level summary of the analysis
-        findings: List of individual findings
-        metrics: Analysis metrics (lines analyzed, files processed, etc.)
-        recommendations: Overall recommendations
-    """
     summary: str = Field(..., description="High-level summary of the analysis")
     findings: List[Finding] = Field(
         default_factory=list,
@@ -232,20 +182,6 @@ class AnalysisResults(BaseModel):
 
 
 class AnalysisResult(BaseModel):
-    """
-    Complete analysis result with task information.
-    
-    Attributes:
-        task_id: Unique task identifier
-        status: Current task status
-        repo_url: GitHub repository URL
-        pr_number: Pull request number
-        results: Analysis results (only if completed)
-        error: Error message (only if failed)
-        created_at: Task creation timestamp
-        completed_at: Task completion timestamp
-        progress: Task progress percentage (0-100)
-    """
     task_id: str = Field(..., description="Unique task identifier")
     status: TaskStatusEnum = Field(..., description="Current task status")
     repo_url: str = Field(..., description="GitHub repository URL")
@@ -290,17 +226,6 @@ class AnalysisResult(BaseModel):
 
 
 class TaskStatus(BaseModel):
-    """
-    Basic task status information.
-    
-    Attributes:
-        task_id: Unique task identifier
-        status: Current task status
-        repo_url: GitHub repository URL
-        pr_number: Pull request number
-        created_at: Task creation timestamp
-        progress: Task progress percentage
-    """
     task_id: str = Field(..., description="Unique task identifier")
     status: TaskStatusEnum = Field(..., description="Current task status")
     repo_url: str = Field(..., description="GitHub repository URL")
@@ -342,15 +267,6 @@ class TaskStatusResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """
-    Error response model.
-    
-    Attributes:
-        error: Error code
-        message: Human-readable error message
-        task_id: Associated task ID (if applicable)
-        details: Additional error details
-    """
     error: str = Field(..., description="Error code")
     message: str = Field(..., description="Human-readable error message")
     task_id: Optional[str] = Field(None, description="Associated task ID")

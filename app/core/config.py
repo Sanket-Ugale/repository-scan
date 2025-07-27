@@ -1,9 +1,3 @@
-"""
-Application configuration management using Pydantic Settings.
-
-This module handles all configuration settings for the AI Code Review Agent,
-supporting both environment variables and .env files with proper validation.
-"""
 import os
 from functools import lru_cache
 from typing import List, Optional
@@ -36,12 +30,6 @@ except ImportError:
 
 
 class Settings(BaseSettings):
-    """
-    Application settings with validation and environment variable support.
-    
-    All settings can be overridden using environment variables with the same name.
-    """
-    
     # Environment Configuration
     ENVIRONMENT: str = "development"
     
@@ -62,13 +50,18 @@ class Settings(BaseSettings):
     # AI/LLM Configuration
     OPENAI_API_KEY: Optional[str] = os.environ.get('OPENAI_API_KEY')
     ANTHROPIC_API_KEY: Optional[str] = os.environ.get('ANTHROPIC_API_KEY')
-    DEFAULT_LLM_PROVIDER: str = os.environ.get('DEFAULT_LLM_PROVIDER', 'local')
-    DEFAULT_MODEL: str = os.environ.get('DEFAULT_MODEL', 'lily-cybersecurity-7b-v0.2')
+    DEFAULT_LLM_PROVIDER: str = os.environ.get('DEFAULT_LLM_PROVIDER', 'ollama')
+    DEFAULT_MODEL: str = os.environ.get('DEFAULT_MODEL', 'llama3.2:3b')
     
-    # Local LLM Configuration
+    # Ollama Configuration
+    OLLAMA_BASE_URL: str = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
+    OLLAMA_API_BASE: str = os.environ.get('OLLAMA_API_BASE', 'http://localhost:11434')
+    OLLAMA_MODEL: str = os.environ.get('OLLAMA_MODEL', 'llama3.2:3b')
+    
+    # Local LLM Configuration (fallback)
     LOCAL_LLM_BASE_URL: Optional[str] = os.environ.get('LOCAL_LLM_BASE_URL', 'http://localhost:4000')
     LOCAL_LLM_API_KEY: Optional[str] = os.environ.get('LOCAL_LLM_API_KEY')
-    LOCAL_LLM_MODEL: str = os.environ.get('LOCAL_LLM_MODEL', 'lily-cybersecurity-7b-v0.2')
+    LOCAL_LLM_MODEL: str = os.environ.get('LOCAL_LLM_MODEL', 'llama3.2:3b')  # Use the same model as Ollama
     
     def __init__(self, **kwargs):
         # Initialize with defaults first
@@ -80,6 +73,9 @@ class Settings(BaseSettings):
         self.ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', self.ANTHROPIC_API_KEY)
         self.DEFAULT_LLM_PROVIDER = os.getenv('DEFAULT_LLM_PROVIDER', self.DEFAULT_LLM_PROVIDER)
         self.DEFAULT_MODEL = os.getenv('DEFAULT_MODEL', self.DEFAULT_MODEL)
+        self.OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', self.OLLAMA_BASE_URL)
+        self.OLLAMA_API_BASE = os.getenv('OLLAMA_API_BASE', self.OLLAMA_API_BASE)
+        self.OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', self.OLLAMA_MODEL)
         self.LOCAL_LLM_BASE_URL = os.getenv('LOCAL_LLM_BASE_URL', self.LOCAL_LLM_BASE_URL)
         self.LOCAL_LLM_API_KEY = os.getenv('LOCAL_LLM_API_KEY', self.LOCAL_LLM_API_KEY)
         self.LOCAL_LLM_MODEL = os.getenv('LOCAL_LLM_MODEL', self.LOCAL_LLM_MODEL)
@@ -143,13 +139,4 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    """
-    Get cached settings instance.
-    
-    Using lru_cache ensures settings are only loaded once and reused
-    across the application lifecycle.
-    
-    Returns:
-        Settings: Application settings instance
-    """
     return Settings()

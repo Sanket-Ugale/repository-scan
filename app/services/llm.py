@@ -1,11 +1,13 @@
-"""
-LLM service for AI model interactions.
-
-This module provides a service class for interacting with various
-LLM providers (OpenAI, Anthropic, Ollama, Local LLM) for code analysis.
-"""
 from typing import Dict, List, Optional, Any, Union
 import json
+
+# Primary import - LangChain service
+try:
+    from app.services.llm_langchain import langchain_llm_service
+    LANGCHAIN_SERVICE_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_SERVICE_AVAILABLE = False
+    langchain_llm_service = None
 
 # Optional imports with fallbacks
 try:
@@ -49,47 +51,63 @@ from app.utils.helpers import chunk_text, mask_sensitive_data
 
 
 class LLMService:
-    """
-    Service for Large Language Model interactions.
-    
-    This class provides a unified interface for interacting with different
-    LLM providers including local LLM servers for code analysis.
-    """
     
     def __init__(self):
-        """Initialize LLM service with configured providers."""
+        """Initialize LLM service with LangChain as primary option."""
         settings = get_settings()
         self.settings = settings
         self.logger = logger
         
-        # Initialize clients based on available API keys and providers
+        # Always initialize these attributes
+        self.local_llm_url = getattr(self.settings, 'OLLAMA_BASE_URL', 'http://localhost:11434')
+        self.local_llm_model = getattr(self.settings, 'OLLAMA_MODEL', 'llama3.2:3b')
         self.openai_client = None
         self.anthropic_client = None
-        self.local_llm_url = None
         
-        # Configure local LLM
-        if hasattr(settings, 'LOCAL_LLM_BASE_URL'):
-            self.local_llm_url = settings.LOCAL_LLM_BASE_URL
-            self.local_llm_model = getattr(settings, 'LOCAL_LLM_MODEL', 'lily-cybersecurity-7b-v0.2')
-            self.logger.info(f"Local LLM configured at {self.local_llm_url} with model {self.local_llm_model}")
+        # Try to use LangChain service first
+        if LANGCHAIN_SERVICE_AVAILABLE and langchain_llm_service:
+            self.primary_service = langchain_llm_service
+            self.use_langchain = True
+            self.logger.info("LangChain LLM service initialized as primary")
+        else:
+            self.use_langchain = False
+            self.primary_service = None
+            self.logger.warning("LangChain not available, falling back to basic implementation")
+            
+            # Initialize fallback clients
+            self._initialize_fallback_clients()
+    
+    def _initialize_fallback_clients(self):
+        """Initialize fallback LLM clients when LangChain is not available."""
+        self.openai_client = None
+        self.anthropic_client = None
+        # Don't reset local_llm_url here as it was already set in __init__
         
-        if OPENAI_AVAILABLE and hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY != 'your_openai_api_key_here':
+        # Configure Ollama fallback (keep existing values if already set)
+        if hasattr(self.settings, 'OLLAMA_BASE_URL') and not self.local_llm_url:
+            self.local_llm_url = self.settings.OLLAMA_BASE_URL
+            self.local_llm_model = getattr(self.settings, 'OLLAMA_MODEL', 'llama3.2:3b')
+            
+        if self.local_llm_url:
+            self.logger.info(f"Ollama fallback configured at {self.local_llm_url} with model {self.local_llm_model}")
+        
+        if OPENAI_AVAILABLE and hasattr(self.settings, 'OPENAI_API_KEY') and self.settings.OPENAI_API_KEY != 'your_openai_api_key_here':
             try:
-                self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
-                self.logger.info("OpenAI client initialized")
+                self.openai_client = OpenAI(api_key=self.settings.OPENAI_API_KEY)
+                self.logger.info("OpenAI fallback client initialized")
             except Exception as e:
-                self.logger.warning(f"Failed to initialize OpenAI client: {e}")
+                self.logger.warning(f"Failed to initialize OpenAI fallback client: {e}")
         
-        if ANTHROPIC_AVAILABLE and hasattr(settings, 'ANTHROPIC_API_KEY') and settings.ANTHROPIC_API_KEY != 'your_anthropic_api_key_here':
+        if ANTHROPIC_AVAILABLE and hasattr(self.settings, 'ANTHROPIC_API_KEY') and self.settings.ANTHROPIC_API_KEY != 'your_anthropic_api_key_here':
             try:
-                self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-                self.logger.info("Anthropic client initialized")
+                self.anthropic_client = Anthropic(api_key=self.settings.ANTHROPIC_API_KEY)
+                self.logger.info("Anthropic fallback client initialized")
             except Exception as e:
-                self.logger.warning(f"Failed to initialize Anthropic client: {e}")
+                self.logger.warning(f"Failed to initialize Anthropic fallback client: {e}")
         
         # Set default provider
-        self.default_provider = getattr(settings, 'DEFAULT_LLM_PROVIDER', 'local')
-        self.default_model = getattr(settings, 'DEFAULT_MODEL', 'lily-cybersecurity-7b-v0.2')
+        self.default_provider = getattr(self.settings, 'DEFAULT_LLM_PROVIDER', 'ollama')
+        self.default_model = getattr(self.settings, 'DEFAULT_MODEL', 'llama3.2:3b')
         
         if not self.openai_client and not self.anthropic_client and not self.local_llm_url:
             self.logger.warning("No LLM providers configured - AI features will be limited")
@@ -103,64 +121,229 @@ class LLMService:
         analysis_type: str = "comprehensive",
         focus_areas: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """
-        Analyze code diff using LLM for issues and improvements.
-        
-        Args:
-            diff_content: Git diff content to analyze
-            file_content: Full file content for context
-            filename: Name of the file being analyzed
-            context: Additional context about the PR/file
-            analysis_type: Type of analysis to perform
-            focus_areas: Specific areas to focus on
-            
-        Returns:
-            Dict[str, Any]: Analysis results with issues found
-        """
         self.logger.info(
             "Starting code diff analysis",
             filename=filename,
             analysis_type=analysis_type,
             focus_areas=focus_areas,
-            diff_size=len(diff_content)
+            diff_size=len(diff_content),
+            using_langchain=self.use_langchain
         )
         
         try:
-            # Build comprehensive analysis prompt
-            prompt = self._build_code_review_prompt(
+            # Use LangChain service if available
+            if self.use_langchain and self.primary_service:
+                return await self.primary_service.analyze_code_diff(
+                    diff_content=diff_content,
+                    file_content=file_content,
+                    filename=filename,
+                    context=context,
+                    analysis_type=analysis_type,
+                    focus_areas=focus_areas
+                )
+            
+            # Fallback to basic implementation
+            return await self._fallback_analyze_code_diff(
                 diff_content=diff_content,
                 file_content=file_content,
                 filename=filename,
-                context=context or {},
-                analysis_type=analysis_type
+                context=context,
+                analysis_type=analysis_type,
+                focus_areas=focus_areas
             )
-            
-            # Get analysis from LLM
-            response = await self._call_llm(prompt, temperature=0.1)
-            
-            # Parse and structure the response into required format
-            analysis_result = self._parse_code_review_response(response, filename or "unknown")
-            
-            self.logger.info(
-                "Code diff analysis completed",
-                filename=filename,
-                issues_found=len(analysis_result.get("issues", [])),
-                analysis_type=analysis_type
-            )
-            
-            return analysis_result
             
         except Exception as e:
-            self.logger.error(
-                "Code diff analysis failed",
+            self.logger.error(f"Code analysis failed: {e}")
+            return self._create_error_response(str(e), filename)
+    
+    async def _fallback_analyze_code_diff(
+        self,
+        diff_content: str,
+        file_content: Optional[str] = None,
+        filename: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
+        analysis_type: str = "comprehensive",
+        focus_areas: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Fallback implementation for code analysis."""
+        self.logger.info("Using fallback code analysis")
+        
+        try:
+            # Build simple analysis prompt
+            prompt = self._build_simple_code_review_prompt(
+                diff_content=diff_content,
                 filename=filename,
-                error=str(e),
-                analysis_type=analysis_type
+                context=context or {}
             )
-            return {
-                "issues": [],
-                "error": str(e)
+            
+            # Try Ollama first, then other providers
+            response = await self._call_fallback_llm(prompt)
+            
+            # Parse response into expected format
+            return self._parse_simple_response(response, filename or "unknown")
+            
+        except Exception as e:
+            self.logger.error(f"Fallback analysis failed: {e}")
+            return self._create_error_response(str(e), filename)
+    
+    def _create_error_response(self, error: str, filename: Optional[str]) -> Dict[str, Any]:
+        """Create a standardized error response."""
+        return {
+            "overall_score": 3,
+            "summary": f"Analysis failed for {filename or 'unknown file'}",
+            "issues": [
+                {
+                    "type": "system",
+                    "severity": "low",
+                    "message": f"Analysis error: {error}",
+                    "line": None,
+                    "suggestion": "Check LLM service configuration"
+                }
+            ],
+            "recommendations": [
+                "Verify LLM service is properly configured",
+                "Check network connectivity",
+                "Install LangChain dependencies"
+            ],
+            "approval_status": "requires_changes",
+            "analysis_metadata": {
+                "provider": "error",
+                "model": "none",
+                "error": error
             }
+        }
+    
+    def _build_simple_code_review_prompt(
+        self,
+        diff_content: str,
+        filename: Optional[str],
+        context: Dict[str, Any]
+    ) -> str:
+        """Build a simple prompt for fallback analysis."""
+        return f"""
+You are an expert code reviewer. Analyze the following code diff and provide feedback.
+
+File: {filename or 'Unknown'}
+Diff:
+{diff_content[:2000]}
+
+Context: {json.dumps(context, indent=2)}
+
+Please provide:
+1. Overall assessment (score 1-10)
+2. Key issues found
+3. Recommendations for improvement
+4. Whether changes should be approved
+
+Respond in JSON format with:
+- overall_score: number
+- summary: string
+- issues: array of issue objects with type, severity, message
+- recommendations: array of strings
+- approval_status: "approved" or "requires_changes"
+"""
+    
+    async def _call_fallback_llm(self, prompt: str) -> str:
+        """Call LLM using fallback methods."""
+        # Try Ollama first
+        if self.local_llm_url:
+            try:
+                return await self._call_ollama_direct(prompt)
+            except Exception as e:
+                self.logger.warning(f"Ollama call failed: {e}")
+        
+        # Try OpenAI
+        if self.openai_client:
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=2000
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                self.logger.warning(f"OpenAI call failed: {e}")
+        
+        # Try Anthropic
+        if self.anthropic_client:
+            try:
+                response = self.anthropic_client.messages.create(
+                    model="claude-3-haiku-20240307",
+                    max_tokens=2000,
+                    temperature=0.1,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text
+            except Exception as e:
+                self.logger.warning(f"Anthropic call failed: {e}")
+        
+        raise Exception("No LLM providers available")
+    
+    async def _call_ollama_direct(self, prompt: str) -> str:
+        """Call Ollama directly via HTTP."""
+        if not HTTPX_AVAILABLE:
+            raise Exception("httpx not available for Ollama calls")
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                f"{self.local_llm_url}/api/generate",
+                json={
+                    "model": self.local_llm_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    }
+                }
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result.get("response", "")
+    
+    def _parse_simple_response(self, response: str, filename: str) -> Dict[str, Any]:
+        """Parse simple LLM response into expected format."""
+        try:
+            # Try to parse as JSON first
+            if response.strip().startswith('{'):
+                data = json.loads(response)
+                return {
+                    "overall_score": data.get("overall_score", 5),
+                    "summary": data.get("summary", f"Analysis for {filename}"),
+                    "issues": data.get("issues", []),
+                    "recommendations": data.get("recommendations", []),
+                    "approval_status": data.get("approval_status", "requires_changes"),
+                    "analysis_metadata": {
+                        "provider": self.default_provider,
+                        "model": self.default_model,
+                        "fallback": True
+                    }
+                }
+        except json.JSONDecodeError:
+            pass
+        
+        # Fallback to text parsing
+        return {
+            "overall_score": 5,
+            "summary": f"Basic analysis completed for {filename}",
+            "issues": [
+                {
+                    "type": "general",
+                    "severity": "medium",
+                    "message": "Manual review recommended",
+                    "line": None,
+                    "suggestion": response[:500] if response else "No analysis available"
+                }
+            ],
+            "recommendations": ["Manual code review recommended"],
+            "approval_status": "requires_changes",
+            "analysis_metadata": {
+                "provider": "fallback",
+                "model": "text_parsing",
+                "fallback": True
+            }
+        }
     
     async def analyze_file_content(
         self, 
@@ -466,6 +649,11 @@ class LLMService:
         if not LITELLM_AVAILABLE:
             raise Exception("LiteLLM not available - install with: pip install litellm")
         
+        # For Ollama models, add the ollama/ prefix if not present
+        if self.local_llm_url and "ollama" in self.local_llm_url.lower():
+            if not model.startswith("ollama/"):
+                model = f"ollama/{model}"
+        
         response = litellm.completion(
             model=model,
             messages=[
@@ -563,6 +751,8 @@ Respond with a JSON object containing an "issues" array. Each issue should have:
     "description": "Clear description of the issue",
     "suggestion": "Specific suggestion to fix the issue"
 }}
+
+IMPORTANT: Ensure all JSON strings are properly escaped. Use backslash before quotes inside strings.
 
 EXAMPLE:
 {{
@@ -664,19 +854,51 @@ Respond in JSON format:
             # Try to parse as JSON first
             return json.loads(response)
         except json.JSONDecodeError:
-            # If JSON parsing fails, try to extract JSON from the response
+            # If JSON parsing fails, try to extract JSON from markdown code blocks
             import re
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
-            if json_match:
+            
+            # First try to find JSON in markdown code blocks with balanced braces
+            json_block_match = re.search(r'```json\s*(\{.*\})\s*```', response, re.DOTALL)
+            if json_block_match:
                 try:
-                    return json.loads(json_match.group())
+                    json_content = json_block_match.group(1)
+                    return json.loads(json_content)
+                except json.JSONDecodeError as e:
+                    self.logger.warning("Failed to parse JSON from code block", error=str(e), json_content=json_content[:200])
+            
+            # Try to find JSON between first { and last }
+            first_brace = response.find('{')
+            last_brace = response.rfind('}')
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                try:
+                    json_content = response[first_brace:last_brace+1]
+                    return json.loads(json_content)
+                except json.JSONDecodeError as e:
+                    # Try to fix common JSON issues
+                    try:
+                        # Fix unescaped quotes in strings
+                        import re
+                        fixed_json = re.sub(r'(?<!\\)"(?=[^,}\]]*"[,}\]])', '\\"', json_content)
+                        return json.loads(fixed_json)
+                    except json.JSONDecodeError:
+                        self.logger.warning("Failed to parse JSON from brace extraction", error=str(e), json_content=json_content[:200])
+            
+            # Try to extract just the issues array if full JSON fails
+            issues_match = re.search(r'"issues"\s*:\s*\[(.*?)\]', response, re.DOTALL)
+            if issues_match:
+                try:
+                    # Create a minimal JSON structure with just the issues
+                    minimal_json = f'{{"issues": [{issues_match.group(1)}]}}'
+                    return json.loads(minimal_json)
                 except json.JSONDecodeError:
                     pass
             
             # Fallback to plain text parsing
+            self.logger.warning("Failed to parse LLM response as JSON", raw_response=response[:500])
             return {
                 "summary": "Analysis completed but response format was invalid",
                 "findings": [],
+                "issues": [],
                 "raw_response": response
             }
     

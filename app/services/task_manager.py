@@ -1,9 +1,3 @@
-"""
-Task management service for tracking analysis progress.
-
-This module provides a TaskManager class for handling task storage,
-retrieval, and status updates using SQLAlchemy ORM.
-"""
 import json
 from typing import Dict, Any, Optional, List
 
@@ -51,17 +45,6 @@ class TaskManager:
         pr_number: Optional[int] = None,
         github_token: Optional[str] = None
     ) -> bool:
-        """Create a new task record using ORM.
-        
-        Args:
-            task_id: Unique identifier for the task
-            repo_url: GitHub repository URL
-            pr_number: Pull request number (optional)
-            github_token: GitHub API token (optional)
-            
-        Returns:
-            bool: True if task was created successfully
-        """
         if not SQLALCHEMY_AVAILABLE or not self.SessionLocal:
             logger.warning("Database not available - task creation skipped")
             return False
@@ -140,19 +123,6 @@ class TaskManager:
         result: Dict[str, Any] = None,
         error: str = None
     ) -> bool:
-        """Update task status in database using ORM.
-        
-        Args:
-            task_id: Unique task identifier
-            status: New task status
-            progress: Task progress percentage (0-100)
-            message: Status message
-            result: Analysis results (JSON)
-            error: Error message if task failed
-            
-        Returns:
-            bool: True if task was updated successfully
-        """
         if not SQLALCHEMY_AVAILABLE or not self.SessionLocal:
             logger.warning("Database not available - cannot update task")
             return False
@@ -185,15 +155,6 @@ class TaskManager:
             return False
     
     async def get_task_results(self, task_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get task results from database.
-        
-        Args:
-            task_id: Unique task identifier
-            
-        Returns:
-            Dict containing task results or None if not found/completed
-        """
         task_info = await self.get_task_status(task_id)
         
         if not task_info:
@@ -225,15 +186,6 @@ class TaskManager:
         }
     
     async def list_tasks(self, repo_url: str = None, pr_number: int = None) -> List[Dict[str, Any]]:
-        """List tasks from database with optional filtering using ORM.
-        
-        Args:
-            repo_url: Optional repository URL filter
-            pr_number: Optional PR number filter
-            
-        Returns:
-            List of task information dictionaries
-        """
         if not SQLALCHEMY_AVAILABLE or not self.SessionLocal:
             logger.warning("Database not available - cannot list tasks")
             return []

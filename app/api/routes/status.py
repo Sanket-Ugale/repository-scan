@@ -1,9 +1,3 @@
-"""
-Status API routes for tracking analysis progress.
-
-This module handles endpoints for checking task status,
-retrieving results, and managing analysis history.
-"""
 from typing import List, Optional
 
 import structlog
@@ -30,19 +24,6 @@ async def get_task_status(
     task_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> TaskStatusResponse:
-    """
-    Get the status of an analysis task.
-    
-    Args:
-        task_id: Unique task identifier
-        db: Database session
-        
-    Returns:
-        TaskStatusResponse: Current task status and progress
-        
-    Raises:
-        HTTPException: If task is not found or error occurs
-    """
     logger.info("Task status requested", task_id=task_id)
     
     try:
@@ -94,19 +75,6 @@ async def get_analysis_results(
     task_id: str,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Get analysis results for a completed task.
-    
-    Args:
-        task_id: Unique task identifier
-        db: Database session
-        
-    Returns:
-        Analysis results or error response
-        
-    Raises:
-        HTTPException: If task is not found, not completed, or error occurs
-    """
     logger.info("Analysis results requested", task_id=task_id)
     
     try:
@@ -165,20 +133,7 @@ async def list_tasks(
     pr_number: Optional[int] = Query(None, description="Pull request number filter"),
     db: AsyncSession = Depends(get_db),
 ) -> List[TaskStatusResponse]:
-    """
-    List analysis tasks with optional filtering.
-    
-    Args:
-        repo_url: Optional repository URL filter
-        pr_number: Optional PR number filter
-        db: Database session
-        
-    Returns:
-        List of task status responses
-        
-    Raises:
-        HTTPException: If validation fails or error occurs
-    """
+
     logger.info(
         "Task list requested",
         repo_url=repo_url,
@@ -232,12 +187,6 @@ async def list_tasks(
     description="Check the health status of the analysis service."
 )
 async def health_check():
-    """
-    Health check endpoint.
-    
-    Returns:
-        Health status information
-    """
     try:
         # Check service health
         health_status = {

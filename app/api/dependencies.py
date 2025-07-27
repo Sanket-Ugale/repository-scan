@@ -1,9 +1,3 @@
-"""
-FastAPI dependencies for dependency injection.
-
-This module provides dependency functions for database sessions,
-authentication, and other shared resources.
-"""
 from typing import AsyncGenerator, Optional
 
 # Optional import for structlog
@@ -58,9 +52,6 @@ async def get_db():
         return
         
     try:
-        # Since we're using synchronous ORM, we don't need async session here
-        # Just yield None as the endpoints don't actually use the injected session
-        # The TaskManager handles its own sessions
         yield None
     except Exception as e:
         logger.error("Database connection failed", error=str(e))
@@ -68,18 +59,6 @@ async def get_db():
 
 
 async def get_current_user(credentials=None) -> Optional[str]:
-    """
-    Dependency to get current authenticated user.
-    
-    Args:
-        credentials: Bearer token credentials
-        
-    Returns:
-        Optional[str]: User ID if authenticated, None otherwise
-        
-    Raises:
-        HTTPException: If token is invalid
-    """
     if not FASTAPI_AVAILABLE:
         logger.warning("Authentication unavailable - FastAPI not installed")
         return None
@@ -99,38 +78,14 @@ async def get_current_user(credentials=None) -> Optional[str]:
 
 
 async def get_github_service() -> GitHubService:
-    """
-    Dependency to get GitHub service instance.
-    
-    Returns:
-        GitHubService: GitHub API service
-    """
     return GitHubService()
 
 
 async def get_llm_service() -> LLMService:
-    """
-    Dependency to get LLM service instance.
-    
-    Returns:
-        LLMService: LLM API service
-    """
     return LLMService()
 
 
 def require_auth(user_id: Optional[str] = None) -> str:
-    """
-    Dependency that requires authentication.
-    
-    Args:
-        user_id: User ID from authentication
-        
-    Returns:
-        str: Authenticated user ID
-        
-    Raises:
-        HTTPException: If not authenticated
-    """
     if not FASTAPI_AVAILABLE:
         logger.warning("Authentication unavailable - FastAPI not installed")
         return ""

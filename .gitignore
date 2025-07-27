@@ -183,6 +183,14 @@ htmlcov/
 *.pkl
 *.joblib
 
+# LangChain specific
+.langchain/
+langchain_cache/
+.langsmith/
+
+# Ollama specific
+ollama_data/
+
 # API keys and secrets (extra safety)
 *key*
 *secret*

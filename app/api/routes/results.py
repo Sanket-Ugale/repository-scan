@@ -1,9 +1,3 @@
-"""
-Results API routes for retrieving analysis results.
-
-This module provides endpoints for retrieving completed analysis results
-in the format specified by the assignment.
-"""
 from typing import Dict, Any, Optional
 
 import structlog
@@ -33,22 +27,6 @@ async def get_results(
     task_id: str,
     db: AsyncSession = Depends(get_db)
 ) -> AssignmentResults:
-    """
-    Get analysis results for a completed task.
-    
-    This endpoint returns analysis results in the exact format specified
-    by the assignment requirements.
-    
-    Args:
-        task_id: The unique identifier of the analysis task
-        db: Database session
-        
-    Returns:
-        AssignmentResults: Task results in assignment format
-        
-    Raises:
-        HTTPException: If task not found or not completed
-    """
     try:
         # Get task status from database
         task_data = await task_manager.get_task_status(task_id)

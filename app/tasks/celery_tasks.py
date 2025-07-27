@@ -1,6 +1,3 @@
-"""
-Celery task definitions for asynchronous PR analysis.
-"""
 from typing import Dict, Any, Optional
 import asyncio
 import time
@@ -256,8 +253,9 @@ async def analyze_pr_async(task_id: str, repo_url: str, pr_number: Optional[int]
                 )
             else:
                 # For repository scanning, get full file content
+                default_branch = repo_info.get('default_branch', 'main')
                 file_content = await github_service.get_file_content(
-                    repo_url, filename
+                    repo_url, filename, ref=default_branch
                 )
                 
                 if not file_content or len(file_content.strip()) == 0:

@@ -1,9 +1,3 @@
-"""
-Security utilities for authentication and authorization.
-
-This module provides JWT token handling, password hashing,
-and other security-related functionality.
-"""
 from datetime import datetime, timedelta
 from typing import Optional, Union
 import hmac
@@ -48,16 +42,6 @@ def create_access_token(
     subject: Union[str, int], 
     expires_delta: Optional[timedelta] = None
 ) -> str:
-    """
-    Create JWT access token.
-    
-    Args:
-        subject: The subject (usually user ID) to encode in the token
-        expires_delta: Optional custom expiration time
-        
-    Returns:
-        str: Encoded JWT token
-    """
     if not JOSE_AVAILABLE:
         logger.warning("JWT token creation unavailable - python-jose not installed")
         return ""
@@ -83,15 +67,6 @@ def create_access_token(
 
 
 def verify_token(token: str) -> Optional[str]:
-    """
-    Verify and decode JWT token.
-    
-    Args:
-        token: JWT token to verify
-        
-    Returns:
-        Optional[str]: Subject from token if valid, None otherwise
-    """
     if not JOSE_AVAILABLE:
         logger.warning("JWT token verification unavailable - python-jose not installed")
         return None
@@ -114,16 +89,6 @@ def verify_token(token: str) -> Optional[str]:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a password against its hash.
-    
-    Args:
-        plain_password: Plain text password
-        hashed_password: Hashed password to verify against
-        
-    Returns:
-        bool: True if password matches, False otherwise
-    """
     if not PASSLIB_AVAILABLE:
         logger.warning("Password verification unavailable - passlib not installed")
         # Simple fallback comparison (not secure for production)
@@ -132,15 +97,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    """
-    Hash a password.
-    
-    Args:
-        password: Plain text password to hash
-        
-    Returns:
-        str: Hashed password
-    """
     if not PASSLIB_AVAILABLE:
         logger.warning("Password hashing unavailable - passlib not installed")
         # Simple hash as fallback (not secure for production)
@@ -149,16 +105,6 @@ def get_password_hash(password: str) -> str:
 
 
 def generate_webhook_signature(payload: str, secret: str) -> str:
-    """
-    Generate webhook signature for GitHub webhook verification.
-    
-    Args:
-        payload: Webhook payload
-        secret: Webhook secret
-        
-    Returns:
-        str: Webhook signature
-    """
     import hmac
     import hashlib
     
@@ -172,16 +118,5 @@ def generate_webhook_signature(payload: str, secret: str) -> str:
 
 
 def verify_webhook_signature(payload: str, signature: str, secret: str) -> bool:
-    """
-    Verify GitHub webhook signature.
-    
-    Args:
-        payload: Webhook payload
-        signature: Provided signature
-        secret: Webhook secret
-        
-    Returns:
-        bool: True if signature is valid, False otherwise
-    """
     expected_signature = generate_webhook_signature(payload, secret)
     return hmac.compare_digest(signature, expected_signature)

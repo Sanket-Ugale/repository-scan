@@ -1,9 +1,3 @@
-"""
-Analysis API routes for code review operations.
-
-This module provides endpoints for submitting and tracking
-GitHub pull request analysis tasks.
-"""
 from typing import Dict, List, Optional, Any
 
 import structlog
@@ -41,25 +35,7 @@ async def analyze_pr(
     github_service: GitHubService = Depends(get_github_service),
     llm_service: LLMService = Depends(get_llm_service)
 ) -> AnalysisResponse:
-    """
-    Submit a GitHub repository or pull request for analysis.
-    
-    This endpoint validates the repo URL, generates a unique task ID,
-    and queues the analysis job for background processing.
-    
-    Args:
-        request: Analysis request with GitHub URL, optional PR number, and optional token
-        background_tasks: FastAPI background tasks
-        db: Database session
-        github_service: GitHub API service
-        llm_service: LLM service for analysis
-        
-    Returns:
-        AnalysisResponse: Task ID and status information
-        
-    Raises:
-        HTTPException: If validation fails or repository is invalid
-    """
+
     try:
         # Validate PR number if provided
         if request.pr_number is not None and not validate_pr_number(request.pr_number):
@@ -147,22 +123,6 @@ async def github_webhook(
     payload: Dict[str, Any],
     github_service: GitHubService = Depends(get_github_service),
 ) -> Dict[str, str]:
-    """
-    Handle GitHub webhook events.
-    
-    This endpoint processes GitHub webhook events and can trigger
-    automatic analysis for new pull requests.
-    
-    Args:
-        payload: GitHub webhook payload
-        github_service: GitHub API service
-        
-    Returns:
-        Dict[str, str]: Success response
-        
-    Raises:
-        HTTPException: If webhook processing fails
-    """
     logger.info("GitHub webhook received", event_type=payload.get("action"))
     
     try:

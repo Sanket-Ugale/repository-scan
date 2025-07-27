@@ -1,9 +1,3 @@
-"""
-GitHub API service for repository and pull request interactions.
-
-This module provides a service class for interacting with the GitHub API
-to fetch pull request data, file contents, and other repository information.
-"""
 import base64
 from typing import Dict, List, Optional, Any
 
@@ -26,13 +20,6 @@ logger = structlog.get_logger(__name__)
 
 
 class GitHubService:
-    """
-    Service for GitHub API interactions.
-    
-    This class handles all interactions with the GitHub API including
-    fetching pull request information, file contents, and repository data.
-    """
-    
     def __init__(self):
         """Initialize GitHub service with API client."""
         self.logger = logger.bind(service="github")
@@ -58,16 +45,6 @@ class GitHubService:
             self.logger.warning("GitHub token not configured - using unauthenticated access with rate limits")
     
     async def check_pr_exists(self, repo_url: str, pr_number: int) -> bool:
-        """
-        Check if a pull request exists and is accessible.
-        
-        Args:
-            repo_url: GitHub repository URL
-            pr_number: Pull request number
-            
-        Returns:
-            bool: True if PR exists and is accessible, False otherwise
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return False
@@ -106,16 +83,6 @@ class GitHubService:
             return False
     
     async def get_pull_request_info(self, repo_url: str, pr_number: int) -> Optional[Dict[str, Any]]:
-        """
-        Get detailed information about a pull request.
-        
-        Args:
-            repo_url: GitHub repository URL
-            pr_number: Pull request number
-            
-        Returns:
-            Optional[Dict[str, Any]]: PR information or None if not found
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return None
@@ -180,16 +147,6 @@ class GitHubService:
             return None
     
     async def get_pull_request_files(self, repo_url: str, pr_number: int) -> List[Dict[str, Any]]:
-        """
-        Get the list of files changed in a pull request.
-        
-        Args:
-            repo_url: GitHub repository URL
-            pr_number: Pull request number
-            
-        Returns:
-            List[Dict[str, Any]]: List of changed files with metadata
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return []
@@ -256,17 +213,6 @@ class GitHubService:
         file_path: str, 
         ref: str = "main"
     ) -> Optional[str]:
-        """
-        Get the content of a specific file from the repository.
-        
-        Args:
-            repo_url: GitHub repository URL
-            file_path: Path to the file in the repository
-            ref: Git reference (branch, commit, tag)
-            
-        Returns:
-            Optional[str]: File content as string or None if not found
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return None
@@ -330,17 +276,6 @@ class GitHubService:
         base_sha: str, 
         head_sha: str
     ) -> Optional[str]:
-        """
-        Get the diff between two commits.
-        
-        Args:
-            repo_url: GitHub repository URL
-            base_sha: Base commit SHA
-            head_sha: Head commit SHA
-            
-        Returns:
-            Optional[str]: Diff content or None if not found
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return None
@@ -396,15 +331,6 @@ class GitHubService:
             return None
     
     async def get_repository_info(self, repo_url: str) -> Optional[Dict[str, Any]]:
-        """
-        Get general information about the repository.
-        
-        Args:
-            repo_url: GitHub repository URL
-            
-        Returns:
-            Optional[Dict[str, Any]]: Repository information or None if not found
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return None
@@ -463,17 +389,6 @@ class GitHubService:
             return None
 
     async def get_repo_files(self, repo_url: str, ref: str = None, max_files: int = 100) -> List[Dict[str, Any]]:
-        """
-        Get list of files in the repository.
-        
-        Args:
-            repo_url: GitHub repository URL
-            ref: Git reference (branch, commit, tag). If None, uses repository's default branch
-            max_files: Maximum number of files to retrieve
-            
-        Returns:
-            List[Dict[str, Any]]: List of file information
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return []
@@ -618,16 +533,6 @@ class GitHubService:
         return False
 
     async def get_pr_files(self, repo_url: str, pr_number: int) -> Optional[List[Dict[str, Any]]]:
-        """
-        Get list of files changed in a pull request with their diffs.
-        
-        Args:
-            repo_url: GitHub repository URL
-            pr_number: Pull request number
-            
-        Returns:
-            Optional[List[Dict[str, Any]]]: List of file changes or None if error
-        """
         if not self.github:
             self.logger.error("GitHub client not initialized")
             return None
